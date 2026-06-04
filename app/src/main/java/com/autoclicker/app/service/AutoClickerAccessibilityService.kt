@@ -181,6 +181,14 @@ class AutoClickerAccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * Perform a single tap at the given screen coordinates.
+     * Public version for use by [MidiPlaybackEngine] which controls its own timing.
+     */
+    fun performSingleClick(x: Float, y: Float) {
+        performClick(x, y)
+    }
+
     companion object {
         private const val TAG = "AutoClickerService"
 

@@ -1,0 +1,216 @@
+package com.autoclicker.app.data
+
+import android.util.Log
+import com.autoclicker.app.service.AutoClickerAccessibilityService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+
+/**
+ * Current playback state exposed to the UI and overlay.
+ */
+data class MidiPlaybackState(
+    val isPlaying: Boolean = false,
+    val isPaused: Boolean = false,
+    val progress: Float = 0f,         // 0.0–1.0
+    val currentNoteIndex: Int = 0,
+    val totalNotes: Int = 0,
+    val songName: String = ""
+)
+
+/**
+ * Coroutine-based engine that plays a [MidiSong] by dispatching taps
+ * at the correct screen positions with proper MIDI timing.
+ *
+ * Flow:
+ * 1. The song's note-on events are filtered and sorted by time.
+ * 2. For each note, the engine resolves:
+ *    MIDI note → marker index (via [NoteMapper]) → screen position (from marker positions)
+ * 3. It waits the correct delta time (divided by speed multiplier), then dispatches a click
+ *    via the accessibility service.
+ *
+ * The engine does NOT use the service's own click loop — it drives timing independently.
+ */
+class MidiPlaybackEngine {
+
+    companion object {
+        private const val TAG = "MidiPlayback"
+
+        @Volatile
+        private var INSTANCE: MidiPlaybackEngine? = null
+
+        fun getInstance(): MidiPlaybackEngine {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: MidiPlaybackEngine().also { INSTANCE = it }
+            }
+        }
+    }
+
+    private val _state = MutableStateFlow(MidiPlaybackState())
+    val state: StateFlow<MidiPlaybackState> = _state.asStateFlow()
+
+    private var playbackJob: Job? = null
+    private var pauseResumeJob: Job? = null
+
+    // Stored for pause/resume
+    private var currentSong: MidiSong? = null
+    private var currentLayoutType: LayoutType? = null
+    private var currentPositions: List<Pair<Float, Float>>? = null
+    private var currentSpeed: Float = 1.0f
+    private var pausedAtIndex: Int = 0
+
+    /**
+     * Start playing a MIDI song.
+     *
+     * @param song The parsed MIDI song to play
+     * @param layoutType The current piano layout (for note mapping)
+     * @param markerScreenPositions Absolute screen (x, y) for each marker index
+     * @param speedMultiplier Playback speed (1.0 = normal, 2.0 = double speed, etc.)
+     */
+    fun play(
+        song: MidiSong,
+        layoutType: LayoutType,
+        markerScreenPositions: List<Pair<Float, Float>>,
+        speedMultiplier: Float = 1.0f
+    ) {
+        stop() // Stop any existing playback
+
+        currentSong = song
+        currentLayoutType = layoutType
+        currentPositions = markerScreenPositions
+        currentSpeed = speedMultiplier
+
+        startPlaybackFrom(0, song, layoutType, markerScreenPositions, speedMultiplier)
+    }
+
+    /**
+     * Pause the current playback.
+     */
+    fun pause() {
+        if (_state.value.isPlaying && !_state.value.isPaused) {
+            playbackJob?.cancel()
+            _state.value = _state.value.copy(isPaused = true, isPlaying = false)
+            Log.d(TAG, "Paused at note index ${_state.value.currentNoteIndex}")
+        }
+    }
+
+    /**
+     * Resume from paused state.
+     */
+    fun resume() {
+        val song = currentSong ?: return
+        val layout = currentLayoutType ?: return
+        val positions = currentPositions ?: return
+
+        if (_state.value.isPaused) {
+            startPlaybackFrom(
+                pausedAtIndex,
+                song, layout, positions, currentSpeed
+            )
+        }
+    }
+
+    /**
+     * Stop playback completely.
+     */
+    fun stop() {
+        playbackJob?.cancel()
+        playbackJob = null
+        pausedAtIndex = 0
+        _state.value = MidiPlaybackState()
+        Log.d(TAG, "Stopped")
+    }
+
+    /**
+     * Check if a MIDI song is loaded and playback is active or paused.
+     */
+    val isActive: Boolean
+        get() = _state.value.isPlaying || _state.value.isPaused
+
+    private fun startPlaybackFrom(
+        startIndex: Int,
+        song: MidiSong,
+        layoutType: LayoutType,
+        markerScreenPositions: List<Pair<Float, Float>>,
+        speedMultiplier: Float
+    ) {
+        // Filter to note-on events only (we tap on note-on, ignore note-off)
+        val noteOnEvents = song.notes.filter { it.isNoteOn }
+
+        if (noteOnEvents.isEmpty()) {
+            Log.w(TAG, "No note-on events in song")
+            return
+        }
+
+        val totalNotes = noteOnEvents.size
+
+        _state.value = MidiPlaybackState(
+            isPlaying = true,
+            isPaused = false,
+            progress = startIndex.toFloat() / totalNotes.toFloat(),
+            currentNoteIndex = startIndex,
+            totalNotes = totalNotes,
+            songName = song.name
+        )
+
+        playbackJob = CoroutineScope(Dispatchers.Main).launch {
+            Log.d(TAG, "Playing '${song.name}' from note $startIndex/$totalNotes at ${speedMultiplier}x")
+
+            for (i in startIndex until totalNotes) {
+                if (!isActive) break
+
+                val note = noteOnEvents[i]
+
+                // Wait for the correct time delta
+                if (i > startIndex) {
+                    val prevNote = noteOnEvents[i - 1]
+                    val deltaMs = note.timeMs - prevNote.timeMs
+                    if (deltaMs > 0) {
+                        val adjustedDelay = (deltaMs / speedMultiplier).toLong()
+                        delay(adjustedDelay)
+                    }
+                } else if (i == 0) {
+                    // First note: wait from song start
+                    val initialDelay = (note.timeMs / speedMultiplier).toLong()
+                    if (initialDelay > 0 && initialDelay < 5000) {
+                        delay(initialDelay)
+                    }
+                }
+
+                if (!isActive) break
+
+                // Map MIDI note → marker index → screen position
+                val markerIndex = NoteMapper.getMappedMarkerIndex(note.note, layoutType)
+                if (markerIndex >= 0 && markerIndex < markerScreenPositions.size) {
+                    val (x, y) = markerScreenPositions[markerIndex]
+                    // Dispatch the click
+                    AutoClickerAccessibilityService.instance?.performSingleClick(x, y)
+                }
+
+                // Update state
+                pausedAtIndex = i + 1
+                _state.value = _state.value.copy(
+                    currentNoteIndex = i + 1,
+                    progress = (i + 1).toFloat() / totalNotes.toFloat()
+                )
+            }
+
+            // Playback finished
+            Log.d(TAG, "Finished playing '${song.name}'")
+            _state.value = MidiPlaybackState(
+                isPlaying = false,
+                isPaused = false,
+                progress = 1f,
+                currentNoteIndex = totalNotes,
+                totalNotes = totalNotes,
+                songName = song.name
+            )
+        }
+    }
+}

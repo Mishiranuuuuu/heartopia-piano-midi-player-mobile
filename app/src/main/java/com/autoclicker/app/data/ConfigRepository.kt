@@ -32,6 +32,16 @@ class ConfigRepository(context: Context) {
             .putFloat(KEY_GRID_SCALE_Y, newConfig.gridScaleY)
             .putFloat(KEY_GRID_OFFSET_X, newConfig.gridOffsetX)
             .putFloat(KEY_GRID_OFFSET_Y, newConfig.gridOffsetY)
+            .putFloat(KEY_MIDI_SPEED, newConfig.midiSpeedMultiplier)
+            .apply {
+                if (newConfig.midiFileUri != null) {
+                    putString(KEY_MIDI_URI, newConfig.midiFileUri)
+                    putString(KEY_MIDI_NAME, newConfig.midiFileName)
+                } else {
+                    remove(KEY_MIDI_URI)
+                    remove(KEY_MIDI_NAME)
+                }
+            }
             .apply()
         _config.value = newConfig
     }
@@ -101,6 +111,25 @@ class ConfigRepository(context: Context) {
         updateConfig(current.copy(gridOffsetX = offsetX, gridOffsetY = offsetY))
     }
 
+    /**
+     * Update the loaded MIDI file.
+     */
+    fun updateMidiFile(uri: String?, fileName: String?) {
+        val current = _config.value
+        updateConfig(current.copy(midiFileUri = uri, midiFileName = fileName))
+    }
+
+    /**
+     * Update the MIDI playback speed multiplier.
+     */
+    fun updateMidiSpeed(speed: Float) {
+        val current = _config.value
+        updateConfig(current.copy(midiSpeedMultiplier = speed.coerceIn(
+            ClickConfig.MIN_MIDI_SPEED,
+            ClickConfig.MAX_MIDI_SPEED
+        )))
+    }
+
     private fun loadConfig(): ClickConfig {
         return ClickConfig(
             x = prefs.getFloat(KEY_X, 540f),
@@ -111,7 +140,10 @@ class ConfigRepository(context: Context) {
             gridScaleX = prefs.getFloat(KEY_GRID_SCALE_X, 1.0f),
             gridScaleY = prefs.getFloat(KEY_GRID_SCALE_Y, 1.0f),
             gridOffsetX = prefs.getFloat(KEY_GRID_OFFSET_X, 0f),
-            gridOffsetY = prefs.getFloat(KEY_GRID_OFFSET_Y, 400f)
+            gridOffsetY = prefs.getFloat(KEY_GRID_OFFSET_Y, 400f),
+            midiFileUri = prefs.getString(KEY_MIDI_URI, null),
+            midiFileName = prefs.getString(KEY_MIDI_NAME, null),
+            midiSpeedMultiplier = prefs.getFloat(KEY_MIDI_SPEED, 1.0f)
         )
     }
 
@@ -126,6 +158,9 @@ class ConfigRepository(context: Context) {
         private const val KEY_GRID_SCALE_Y = "grid_scale_y"
         private const val KEY_GRID_OFFSET_X = "grid_offset_x"
         private const val KEY_GRID_OFFSET_Y = "grid_offset_y"
+        private const val KEY_MIDI_URI = "midi_file_uri"
+        private const val KEY_MIDI_NAME = "midi_file_name"
+        private const val KEY_MIDI_SPEED = "midi_speed"
 
         @Volatile
         private var INSTANCE: ConfigRepository? = null

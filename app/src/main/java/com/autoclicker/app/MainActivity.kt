@@ -8,8 +8,10 @@ import android.os.Bundle
 import android.provider.Settings
 import android.text.TextUtils
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -46,6 +48,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.MusicNote
@@ -54,6 +58,7 @@ import androidx.compose.material.icons.filled.Piano
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.TouchApp
@@ -86,12 +91,15 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autoclicker.app.data.ClickConfig
 import com.autoclicker.app.data.ConfigRepository
 import com.autoclicker.app.data.LayoutType
+import com.autoclicker.app.data.MidiParser
 import com.autoclicker.app.service.AutoClickerAccessibilityService
 import com.autoclicker.app.service.FloatingOverlayService
 import com.autoclicker.app.ui.theme.AutoClickerTheme
@@ -231,6 +239,21 @@ fun AutoClickerApp(
                     LayoutPresetCard(
                         selectedLayout = config.layoutType,
                         onLayoutChange = { configRepository.updateLayoutType(it) }
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // ─── MIDI File Picker ─────────────────────────────
+                    MidiFileCard(
+                        midiFileName = config.midiFileName,
+                        midiSpeed = config.midiSpeedMultiplier,
+                        onFileSelected = { uri, name ->
+                            configRepository.updateMidiFile(uri, name)
+                        },
+                        onFileClear = {
+                            configRepository.updateMidiFile(null, null)
+                        },
+                        onSpeedChange = { configRepository.updateMidiSpeed(it) }
                     )
 
                     Spacer(Modifier.height(12.dp))
@@ -557,6 +580,213 @@ fun LayoutPresetCard(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun MidiFileCard(
+    midiFileName: String?,
+    midiSpeed: Float,
+    onFileSelected: (uri: String, name: String) -> Unit,
+    onFileClear: () -> Unit,
+    onSpeedChange: (Float) -> Unit
+) {
+    val context = LocalContext.current
+    var noteInfo by remember { mutableStateOf<String?>(null) }
+    var speedSlider by remember(midiSpeed) { mutableFloatStateOf(midiSpeed) }
+
+    // File picker launcher
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            // Take persistent read permission so the service can read it later
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) {}
+
+            // Get display name
+            val displayName = getFileName(context, uri) ?: "midi_file.mid"
+
+            // Parse to get note count info
+            val song = MidiParser.parse(context, uri, displayName)
+            if (song != null) {
+                noteInfo = "${song.noteOnCount} notes · ${formatDuration(song.durationMs)}"
+                onFileSelected(uri.toString(), displayName)
+            }
+        }
+    }
+
+    // Load info for already-saved MIDI file
+    LaunchedEffect(midiFileName) {
+        noteInfo = null // Reset; will be populated on next parse
+    }
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = DarkCard),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                1.dp,
+                if (midiFileName != null) GreenAccent.copy(alpha = 0.3f)
+                else CyanAccent.copy(alpha = 0.1f),
+                RoundedCornerShape(16.dp)
+            )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Filled.Piano,
+                    contentDescription = null,
+                    tint = if (midiFileName != null) GreenAccent else CyanAccent,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "MIDI File",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White
+                )
+                Spacer(Modifier.weight(1f))
+                if (midiFileName != null) {
+                    // Clear button
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = "Remove MIDI",
+                        tint = RedAccent.copy(alpha = 0.7f),
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .clickable {
+                                onFileClear()
+                                noteInfo = null
+                            }
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            if (midiFileName != null) {
+                // Show loaded file info
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(GreenAccent.copy(alpha = 0.08f))
+                        .padding(12.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.MusicNote,
+                        contentDescription = null,
+                        tint = GreenAccent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = midiFileName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (noteInfo != null) {
+                            Text(
+                                text = noteInfo!!,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Speed slider
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        Icons.Filled.Speed,
+                        contentDescription = null,
+                        tint = CyanAccent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Speed",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = "${"%.2f".format(speedSlider)}×",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = CyanAccent,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Slider(
+                    value = speedSlider,
+                    onValueChange = { speedSlider = it },
+                    onValueChangeFinished = { onSpeedChange(speedSlider) },
+                    valueRange = ClickConfig.MIN_MIDI_SPEED..ClickConfig.MAX_MIDI_SPEED,
+                    steps = 0,
+                    colors = SliderDefaults.colors(
+                        thumbColor = CyanAccent,
+                        activeTrackColor = CyanAccent,
+                        inactiveTrackColor = DarkSurfaceVariant
+                    )
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("0.25×", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                    Text("1.0×", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                    Text("3.0×", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                }
+            } else {
+                // File picker button
+                OutlinedButton(
+                    onClick = {
+                        filePickerLauncher.launch(arrayOf("audio/midi", "audio/x-midi", "application/x-midi", "*/*"))
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = CyanAccent
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        Icons.Filled.FolderOpen,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Select MIDI File (.mid)")
+                }
+
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Load a MIDI file to auto-play on the piano grid",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted
+                )
             }
         }
     }
@@ -925,4 +1155,35 @@ private fun isAccessibilityServiceEnabled(context: Context): Boolean {
         }
     }
     return false
+}
+
+/**
+ * Extract the display file name from a content URI.
+ */
+private fun getFileName(context: Context, uri: Uri): String? {
+    var name: String? = null
+    val cursor = context.contentResolver.query(uri, null, null, null, null)
+    cursor?.use {
+        if (it.moveToFirst()) {
+            val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (nameIndex >= 0) {
+                name = it.getString(nameIndex)
+            }
+        }
+    }
+    return name
+}
+
+/**
+ * Format a duration in milliseconds to a human-readable string.
+ */
+private fun formatDuration(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return if (minutes > 0) {
+        "${minutes}m ${seconds}s"
+    } else {
+        "${seconds}s"
+    }
 }

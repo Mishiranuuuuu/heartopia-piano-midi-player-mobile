@@ -31,6 +31,9 @@ import com.autoclicker.app.data.ClickConfig
 import com.autoclicker.app.data.ConfigRepository
 import com.autoclicker.app.data.LayoutType
 import com.autoclicker.app.data.MarkerPosition
+import com.autoclicker.app.data.MidiParser
+import com.autoclicker.app.data.MidiPlaybackEngine
+import android.net.Uri
 import kotlin.math.abs
 
 /**
@@ -889,27 +892,58 @@ class FloatingOverlayService : Service() {
             return
         }
 
+        val config = configRepository.config.value
+
         if (isPlaying) {
-            service.stopClicking()
+            // Stop: check if MIDI playback is active
+            val engine = MidiPlaybackEngine.getInstance()
+            if (engine.isActive) {
+                engine.stop()
+            } else {
+                service.stopClicking()
+            }
             isPlaying = false
             icon.setImageResource(android.R.drawable.ic_media_play)
             gridView?.visibility = View.VISIBLE
             resizeHandleRight?.visibility = View.VISIBLE
             resizeHandleBottom?.visibility = View.VISIBLE
         } else {
-            // Compute all click positions from marker screen coordinates
-            val positions = getMarkerScreenPositions()
-            if (positions.isNotEmpty()) {
-                // Update the primary position to the first marker
-                configRepository.updatePosition(positions[0].first, positions[0].second)
+            // Check if we have a MIDI file loaded
+            val midiUri = config.midiFileUri
+            if (midiUri != null) {
+                // MIDI playback mode
+                val song = MidiParser.parse(this, Uri.parse(midiUri), config.midiFileName ?: "MIDI")
+                if (song != null && song.noteOnCount > 0) {
+                    val positions = getMarkerScreenPositions()
+                    val engine = MidiPlaybackEngine.getInstance()
+                    engine.play(
+                        song = song,
+                        layoutType = config.layoutType,
+                        markerScreenPositions = positions,
+                        speedMultiplier = config.midiSpeedMultiplier
+                    )
+                    isPlaying = true
+                    icon.setImageResource(android.R.drawable.ic_media_pause)
+                    gridView?.visibility = View.GONE
+                    resizeHandleRight?.visibility = View.GONE
+                    resizeHandleBottom?.visibility = View.GONE
+                    Log.d(TAG, "Started MIDI playback: ${song.name}, ${song.noteOnCount} notes")
+                } else {
+                    Log.w(TAG, "Failed to parse MIDI file or no notes found")
+                }
+            } else {
+                // Legacy mode: click all marker positions in sequence
+                val positions = getMarkerScreenPositions()
+                if (positions.isNotEmpty()) {
+                    configRepository.updatePosition(positions[0].first, positions[0].second)
+                }
+                service.startClicking()
+                isPlaying = true
+                icon.setImageResource(android.R.drawable.ic_media_pause)
+                gridView?.visibility = View.GONE
+                resizeHandleRight?.visibility = View.GONE
+                resizeHandleBottom?.visibility = View.GONE
             }
-            service.startClicking()
-            isPlaying = true
-            icon.setImageResource(android.R.drawable.ic_media_pause)
-            // Hide grid during clicking so it doesn't interfere
-            gridView?.visibility = View.GONE
-            resizeHandleRight?.visibility = View.GONE
-            resizeHandleBottom?.visibility = View.GONE
         }
     }
 
