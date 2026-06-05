@@ -10,12 +10,7 @@
     <string name="grant_permission">Grant</string>
     <string name="permission_granted">Granted</string>
 
-    <!-- Configuration -->
-    <string name="click_interval">Click Interval</string>
-    <string name="interval_ms">%d ms</string>
-    <string name="repeat_count">Repeat Count</string>
-    <string name="infinite">Infinite</string>
-    <string name="times">%d times</string>
+
     <string name="piano_layout">Piano Layout</string>
     <string name="grid_scale">Grid Scale</string>
     <string name="layout_5col">5-Column</string>

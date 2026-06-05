@@ -268,19 +268,7 @@ fun AutoClickerApp(
 
                     Spacer(Modifier.height(12.dp))
 
-                    IntervalCard(
-                        intervalMs = config.intervalMs,
-                        onIntervalChange = { configRepository.updateInterval(it) }
-                    )
 
-                    Spacer(Modifier.height(12.dp))
-
-                    RepeatCard(
-                        repeatCount = config.repeatCount,
-                        onRepeatChange = { configRepository.updateRepeatCount(it) }
-                    )
-
-                    Spacer(Modifier.height(28.dp))
 
                     // ─── Start / Stop Button ─────────────────────────
                     StartStopButton(
@@ -911,170 +899,7 @@ fun GridScaleCard(
 }
 
 
-@Composable
-fun IntervalCard(
-    intervalMs: Long,
-    onIntervalChange: (Long) -> Unit
-) {
-    var sliderValue by remember(intervalMs) {
-        mutableFloatStateOf(intervalMs.toFloat())
-    }
 
-    Card(
-        colors = CardDefaults.cardColors(containerColor = DarkCard),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, CyanAccent.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    Icons.Filled.Timer,
-                    contentDescription = null,
-                    tint = CyanAccent,
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "Click Interval",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White
-                )
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text = formatInterval(sliderValue.toLong()),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = CyanAccent,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            Slider(
-                value = sliderValue,
-                onValueChange = { sliderValue = it },
-                onValueChangeFinished = { onIntervalChange(sliderValue.toLong()) },
-                valueRange = ClickConfig.MIN_INTERVAL_MS.toFloat()..ClickConfig.MAX_INTERVAL_MS.toFloat(),
-                steps = 0,
-                colors = SliderDefaults.colors(
-                    thumbColor = CyanAccent,
-                    activeTrackColor = CyanAccent,
-                    inactiveTrackColor = DarkSurfaceVariant
-                )
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("50ms", style = MaterialTheme.typography.labelSmall, color = TextMuted)
-                Text("10s", style = MaterialTheme.typography.labelSmall, color = TextMuted)
-            }
-        }
-    }
-}
-
-@Composable
-fun RepeatCard(
-    repeatCount: Int,
-    onRepeatChange: (Int) -> Unit
-) {
-    val isInfinite = repeatCount == ClickConfig.INFINITE
-    var count by remember(repeatCount) {
-        mutableIntStateOf(if (isInfinite) 100 else repeatCount)
-    }
-
-    Card(
-        colors = CardDefaults.cardColors(containerColor = DarkCard),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, CyanAccent.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    Icons.Filled.TouchApp,
-                    contentDescription = null,
-                    tint = CyanAccent,
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "Repeat",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White
-                )
-                Spacer(Modifier.weight(1f))
-
-                Text(
-                    text = "Infinite",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isInfinite) CyanAccent else TextMuted
-                )
-                Spacer(Modifier.width(8.dp))
-                Switch(
-                    checked = isInfinite,
-                    onCheckedChange = { checked ->
-                        if (checked) {
-                            onRepeatChange(ClickConfig.INFINITE)
-                        } else {
-                            onRepeatChange(count)
-                        }
-                    },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = CyanAccent,
-                        checkedTrackColor = CyanAccent.copy(alpha = 0.3f),
-                        uncheckedThumbColor = TextMuted,
-                        uncheckedTrackColor = DarkSurfaceVariant
-                    )
-                )
-            }
-
-            AnimatedVisibility(
-                visible = !isInfinite,
-                enter = fadeIn(tween(300)),
-                exit = fadeOut(tween(200))
-            ) {
-                Column {
-                    Spacer(Modifier.height(12.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Slider(
-                            value = count.toFloat(),
-                            onValueChange = { count = it.toInt() },
-                            onValueChangeFinished = { onRepeatChange(count) },
-                            valueRange = 1f..1000f,
-                            modifier = Modifier.weight(1f),
-                            colors = SliderDefaults.colors(
-                                thumbColor = CyanAccent,
-                                activeTrackColor = CyanAccent,
-                                inactiveTrackColor = DarkSurfaceVariant
-                            )
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Text(
-                            text = "$count×",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = CyanAccent,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun StartStopButton(
@@ -1129,12 +954,7 @@ fun StartStopButton(
 // Utilities
 // ═══════════════════════════════════════════════════════════════════════════
 
-private fun formatInterval(ms: Long): String {
-    return when {
-        ms >= 1000 -> "${ms / 1000f}s"
-        else -> "${ms}ms"
-    }
-}
+
 
 /**
  * Check if our accessibility service is enabled in device settings.

@@ -46,23 +46,15 @@ class AutoClickerAccessibilityService : AccessibilityService() {
                 // Only count a full cycle as one "click" for repeat tracking
                 if (currentPositionIndex == 0) {
                     clickCount++
-                    if (config.repeatCount != ClickConfig.INFINITE && clickCount >= config.repeatCount) {
-                        stopClicking()
-                        return
-                    }
                 }
             } else {
                 // Single-position mode (legacy)
                 performClick(config.x, config.y)
                 clickCount++
-                if (config.repeatCount != ClickConfig.INFINITE && clickCount >= config.repeatCount) {
-                    stopClicking()
-                    return
-                }
             }
 
             // Schedule next click
-            handler.postDelayed(this, config.intervalMs)
+            handler.postDelayed(this, 1000L)
         }
     }
 
@@ -104,7 +96,7 @@ class AutoClickerAccessibilityService : AccessibilityService() {
         currentPositionIndex = 0
         _isRunning.value = true
 
-        Log.d(TAG, "Started clicking at (${currentConfig.x}, ${currentConfig.y}) every ${currentConfig.intervalMs}ms")
+        Log.d(TAG, "Started clicking at (${currentConfig.x}, ${currentConfig.y})")
 
         // Start immediately
         handler.post(clickRunnable)
@@ -125,7 +117,7 @@ class AutoClickerAccessibilityService : AccessibilityService() {
         currentPositionIndex = 0
         _isRunning.value = true
 
-        Log.d(TAG, "Started multi-click with ${positions.size} positions every ${currentConfig.intervalMs}ms")
+        Log.d(TAG, "Started multi-click with ${positions.size} positions")
 
         // Start immediately
         handler.post(clickRunnable)

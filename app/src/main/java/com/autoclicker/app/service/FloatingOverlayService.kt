@@ -809,15 +809,6 @@ class FloatingOverlayService : Service() {
         }
         panel.addView(layoutText)
 
-        // Interval info
-        val intervalText = TextView(this).apply {
-            text = "Interval: ${config.intervalMs}ms"
-            setTextColor(Color.parseColor("#B0BEC5"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            setPadding(0, 0, 0, dpToPx(4))
-        }
-        panel.addView(intervalText)
-
         // Scale info — now shows H×V
         val scaleText = TextView(this).apply {
             text = "Scale: ${"%.1f".format(currentScaleX)}× H  ·  ${"%.1f".format(currentScaleY)}× V"

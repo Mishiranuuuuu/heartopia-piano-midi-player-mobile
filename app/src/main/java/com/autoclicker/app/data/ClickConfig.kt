@@ -11,8 +11,6 @@ package com.autoclicker.app.data
 data class ClickConfig(
     val x: Float = 540f,
     val y: Float = 960f,
-    val intervalMs: Long = 1000L,
-    val repeatCount: Int = -1,
     val layoutType: LayoutType = LayoutType.LAYOUT_5COL,
     val gridScaleX: Float = 1.0f,
     val gridScaleY: Float = 1.0f,
@@ -23,9 +21,6 @@ data class ClickConfig(
     val midiSpeedMultiplier: Float = 1.0f
 ) {
     companion object {
-        const val INFINITE = -1
-        const val MIN_INTERVAL_MS = 50L
-        const val MAX_INTERVAL_MS = 10000L
         const val MIN_GRID_SCALE = 0.3f
         const val MAX_GRID_SCALE = 3.0f
         const val MIN_MIDI_SPEED = 0.25f

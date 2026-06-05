@@ -25,8 +25,6 @@ class ConfigRepository(context: Context) {
         prefs.edit()
             .putFloat(KEY_X, newConfig.x)
             .putFloat(KEY_Y, newConfig.y)
-            .putLong(KEY_INTERVAL, newConfig.intervalMs)
-            .putInt(KEY_REPEAT, newConfig.repeatCount)
             .putInt(KEY_LAYOUT_TYPE, newConfig.layoutType.ordinal)
             .putFloat(KEY_GRID_SCALE_X, newConfig.gridScaleX)
             .putFloat(KEY_GRID_SCALE_Y, newConfig.gridScaleY)
@@ -54,24 +52,6 @@ class ConfigRepository(context: Context) {
         updateConfig(current.copy(x = x, y = y))
     }
 
-    /**
-     * Update only the click interval.
-     */
-    fun updateInterval(intervalMs: Long) {
-        val current = _config.value
-        updateConfig(current.copy(intervalMs = intervalMs.coerceIn(
-            ClickConfig.MIN_INTERVAL_MS,
-            ClickConfig.MAX_INTERVAL_MS
-        )))
-    }
-
-    /**
-     * Update only the repeat count.
-     */
-    fun updateRepeatCount(count: Int) {
-        val current = _config.value
-        updateConfig(current.copy(repeatCount = count))
-    }
 
     /**
      * Update the selected layout type.
@@ -134,8 +114,6 @@ class ConfigRepository(context: Context) {
         return ClickConfig(
             x = prefs.getFloat(KEY_X, 540f),
             y = prefs.getFloat(KEY_Y, 960f),
-            intervalMs = prefs.getLong(KEY_INTERVAL, 1000L),
-            repeatCount = prefs.getInt(KEY_REPEAT, ClickConfig.INFINITE),
             layoutType = LayoutType.fromOrdinal(prefs.getInt(KEY_LAYOUT_TYPE, 0)),
             gridScaleX = prefs.getFloat(KEY_GRID_SCALE_X, 1.0f),
             gridScaleY = prefs.getFloat(KEY_GRID_SCALE_Y, 1.0f),
@@ -151,8 +129,6 @@ class ConfigRepository(context: Context) {
         private const val PREFS_NAME = "auto_clicker_config"
         private const val KEY_X = "click_x"
         private const val KEY_Y = "click_y"
-        private const val KEY_INTERVAL = "click_interval"
-        private const val KEY_REPEAT = "click_repeat"
         private const val KEY_LAYOUT_TYPE = "layout_type"
         private const val KEY_GRID_SCALE_X = "grid_scale_x"
         private const val KEY_GRID_SCALE_Y = "grid_scale_y"
