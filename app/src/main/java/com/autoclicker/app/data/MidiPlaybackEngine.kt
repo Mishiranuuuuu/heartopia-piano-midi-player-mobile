@@ -166,22 +166,32 @@ class MidiPlaybackEngine {
         playbackJob = CoroutineScope(Dispatchers.Main).launch {
             Log.d(TAG, "Playing '${song.name}' from note $startIndex/$totalNotes at ${speedMultiplier}x")
 
-            for (i in startIndex until totalNotes) {
+            var i = startIndex
+            var lastPlayedTimeMs = -1L
+
+            while (i < totalNotes) {
                 if (!isActive) break
 
-                val note = noteOnEvents[i]
+                val baseNote = noteOnEvents[i]
+                val chordNotes = mutableListOf(baseNote)
+
+                // Look ahead for chord notes (notes happening at the exact same time)
+                var j = i + 1
+                while (j < totalNotes && noteOnEvents[j].timeMs == baseNote.timeMs) {
+                    chordNotes.add(noteOnEvents[j])
+                    j++
+                }
 
                 // Wait for the correct time delta
-                if (i > startIndex) {
-                    val prevNote = noteOnEvents[i - 1]
-                    val deltaMs = note.timeMs - prevNote.timeMs
+                if (lastPlayedTimeMs != -1L) {
+                    val deltaMs = baseNote.timeMs - lastPlayedTimeMs
                     if (deltaMs > 0) {
                         val adjustedDelay = (deltaMs / speedMultiplier).toLong()
                         delay(adjustedDelay)
                     }
                 } else if (i == 0) {
                     // First note: wait from song start
-                    val initialDelay = (note.timeMs / speedMultiplier).toLong()
+                    val initialDelay = (baseNote.timeMs / speedMultiplier).toLong()
                     if (initialDelay > 0 && initialDelay < 5000) {
                         delay(initialDelay)
                     }
@@ -189,20 +199,32 @@ class MidiPlaybackEngine {
 
                 if (!isActive) break
 
-                // Map MIDI note → marker index → screen position
-                val markerIndex = NoteMapper.getMappedMarkerIndex(note.note, layoutType)
-                if (markerIndex >= 0 && markerIndex < markerScreenPositions.size) {
-                    val (x, y) = markerScreenPositions[markerIndex]
-                    // Dispatch the click
-                    AutoClickerAccessibilityService.instance?.performSingleClick(x, y)
-                    onMarkerClicked?.invoke(markerIndex)
+                // Collect points for all mapped notes in the chord
+                val pointsToClick = mutableListOf<Pair<Float, Float>>()
+                for (note in chordNotes) {
+                    val markerIndex = NoteMapper.getMappedMarkerIndex(note.note, layoutType)
+                    if (markerIndex >= 0 && markerIndex < markerScreenPositions.size) {
+                        pointsToClick.add(markerScreenPositions[markerIndex])
+                        onMarkerClicked?.invoke(markerIndex)
+                    }
                 }
 
-                // Update state
-                pausedAtIndex = i + 1
+                // Dispatch the click(s)
+                if (pointsToClick.size == 1) {
+                    val (x, y) = pointsToClick[0]
+                    AutoClickerAccessibilityService.instance?.performSingleClick(x, y)
+                } else if (pointsToClick.size > 1) {
+                    AutoClickerAccessibilityService.instance?.performMultiClick(pointsToClick)
+                }
+
+                // Update state for the next iteration
+                lastPlayedTimeMs = baseNote.timeMs
+                pausedAtIndex = j
+                i = j
+
                 _state.value = _state.value.copy(
-                    currentNoteIndex = i + 1,
-                    progress = (i + 1).toFloat() / totalNotes.toFloat()
+                    currentNoteIndex = i,
+                    progress = i.toFloat() / totalNotes.toFloat()
                 )
             }
 

@@ -181,6 +181,55 @@ class AutoClickerAccessibilityService : AccessibilityService() {
         performClick(x, y)
     }
 
+    /**
+     * Perform multiple simultaneous taps at the given screen coordinates.
+     * Used for playing MIDI chords.
+     */
+    fun performMultiClick(points: List<Pair<Float, Float>>) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            Log.w(TAG, "dispatchGesture requires API 24+")
+            return
+        }
+
+        if (points.isEmpty()) return
+
+        val builder = GestureDescription.Builder()
+
+        // Android usually supports up to 10-20 simultaneous touches depending on hardware
+        val maxPoints = minOf(points.size, 10) 
+        
+        for (i in 0 until maxPoints) {
+            val (x, y) = points[i]
+            val path = Path().apply {
+                moveTo(x, y)
+            }
+            val stroke = GestureDescription.StrokeDescription(
+                path,
+                0,   // startTime: begin immediately
+                50   // duration: 50ms tap (short press)
+            )
+            builder.addStroke(stroke)
+        }
+
+        val gesture = builder.build()
+
+        val dispatched = dispatchGesture(gesture, object : GestureResultCallback() {
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                super.onCompleted(gestureDescription)
+                Log.v(TAG, "Multi-click #$clickCount completed with ${points.size} points")
+            }
+
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                super.onCancelled(gestureDescription)
+                Log.w(TAG, "Multi-click #$clickCount cancelled")
+            }
+        }, null)
+
+        if (!dispatched) {
+            Log.e(TAG, "Failed to dispatch multi-gesture")
+        }
+    }
+
     companion object {
         private const val TAG = "AutoClickerService"
 

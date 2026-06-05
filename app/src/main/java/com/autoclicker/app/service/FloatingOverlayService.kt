@@ -932,6 +932,11 @@ class FloatingOverlayService : Service() {
                     resizeHandleRight?.visibility = View.GONE
                     resizeHandleBottom?.visibility = View.GONE
                     Log.d(TAG, "Started MIDI playback: ${song.name}, ${song.noteOnCount} notes")
+                    // Log first few positions for debugging note accuracy
+                    for (i in 0 until minOf(positions.size, 5)) {
+                        val m = currentMarkers.getOrNull(i)
+                        Log.d(TAG, "  Marker[$i] ${m?.label ?: "?"}: tap=(${positions[i].first.toInt()}, ${positions[i].second.toInt()}) sharp=${m?.isSharp}")
+                    }
                 } else {
                     Log.w(TAG, "Failed to parse MIDI file or no notes found")
                 }
@@ -974,9 +979,39 @@ class FloatingOverlayService : Service() {
 
     /**
      * Get the absolute screen positions of all markers.
+     *
+     * Uses the actual rendered view positions (via getLocationOnScreen) to
+     * guarantee taps land exactly where the user sees the markers.
+     * Falls back to calculation-based positioning if views aren't laid out yet.
      */
     fun getMarkerScreenPositions(): List<Pair<Float, Float>> {
         val gParams = gridParams ?: return emptyList()
+
+        // Try view-based positions first (most accurate)
+        if (markerViews.isNotEmpty() && markerViews.size == currentMarkers.size) {
+            val viewPositions = mutableListOf<Pair<Float, Float>>()
+            val screenLocation = IntArray(2)
+            var allValid = true
+
+            for (view in markerViews) {
+                view.getLocationOnScreen(screenLocation)
+                val centerX = screenLocation[0] + view.width / 2f
+                val centerY = screenLocation[1] + view.height / 2f
+
+                // Sanity check: view must have been laid out
+                if (view.width == 0 && view.height == 0) {
+                    allValid = false
+                    break
+                }
+                viewPositions.add(Pair(centerX, centerY))
+            }
+
+            if (allValid && viewPositions.size == currentMarkers.size) {
+                return viewPositions
+            }
+        }
+
+        // Fallback: calculate from relative positions (same as before)
         val padding = dpToPx(GRID_PADDING_DP)
         val usableWidth = gParams.width - padding * 2
         val usableHeight = gParams.height - padding * 2
