@@ -895,6 +895,11 @@ class FloatingOverlayService : Service() {
             }
             isPlaying = false
             icon.setImageResource(android.R.drawable.ic_media_play)
+            gridParams?.let { p ->
+                p.flags = p.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+                p.alpha = 1.0f
+                try { windowManager.updateViewLayout(gridView, p) } catch (_: Exception) {}
+            }
             gridView?.visibility = View.VISIBLE
             resizeHandleRight?.visibility = View.VISIBLE
             resizeHandleBottom?.visibility = View.VISIBLE
@@ -911,11 +916,19 @@ class FloatingOverlayService : Service() {
                         song = song,
                         layoutType = config.layoutType,
                         markerScreenPositions = positions,
-                        speedMultiplier = config.midiSpeedMultiplier
+                        speedMultiplier = config.midiSpeedMultiplier,
+                        onMarkerClicked = { markerIndex ->
+                            highlightMarker(markerIndex)
+                        }
                     )
                     isPlaying = true
                     icon.setImageResource(android.R.drawable.ic_media_pause)
-                    gridView?.visibility = View.GONE
+                    gridParams?.let { p ->
+                        p.flags = p.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                        p.alpha = 0.5f
+                        try { windowManager.updateViewLayout(gridView, p) } catch (_: Exception) {}
+                    }
+                    gridView?.visibility = View.VISIBLE
                     resizeHandleRight?.visibility = View.GONE
                     resizeHandleBottom?.visibility = View.GONE
                     Log.d(TAG, "Started MIDI playback: ${song.name}, ${song.noteOnCount} notes")
@@ -931,11 +944,32 @@ class FloatingOverlayService : Service() {
                 service.startClicking()
                 isPlaying = true
                 icon.setImageResource(android.R.drawable.ic_media_pause)
-                gridView?.visibility = View.GONE
+                gridParams?.let { p ->
+                    p.flags = p.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                    p.alpha = 0.5f
+                    try { windowManager.updateViewLayout(gridView, p) } catch (_: Exception) {}
+                }
+                gridView?.visibility = View.VISIBLE
                 resizeHandleRight?.visibility = View.GONE
                 resizeHandleBottom?.visibility = View.GONE
             }
         }
+    }
+
+    private fun highlightMarker(index: Int) {
+        if (index < 0 || index >= markerViews.size) return
+        val markerFrame = markerViews[index]
+        
+        // Simulating a press: scale down quickly, then back to 1.0
+        markerFrame.animate().cancel()
+        markerFrame.scaleX = 0.7f
+        markerFrame.scaleY = 0.7f
+        
+        markerFrame.animate()
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(150)
+            .start()
     }
 
     /**
@@ -974,7 +1008,7 @@ class FloatingOverlayService : Service() {
 
         // Marker appearance constants (FIXED size, not affected by scaling)
         private const val MARKER_SIZE_DP = 40
-        private const val GRID_PADDING_DP = 8
+        private const val GRID_PADDING_DP = 24
 
         /**
          * Start the floating overlay service.

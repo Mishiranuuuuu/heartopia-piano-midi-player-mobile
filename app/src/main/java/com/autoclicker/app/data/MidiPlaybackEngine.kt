@@ -63,6 +63,7 @@ class MidiPlaybackEngine {
     private var currentLayoutType: LayoutType? = null
     private var currentPositions: List<Pair<Float, Float>>? = null
     private var currentSpeed: Float = 1.0f
+    private var currentOnMarkerClicked: ((Int) -> Unit)? = null
     private var pausedAtIndex: Int = 0
 
     /**
@@ -77,7 +78,8 @@ class MidiPlaybackEngine {
         song: MidiSong,
         layoutType: LayoutType,
         markerScreenPositions: List<Pair<Float, Float>>,
-        speedMultiplier: Float = 1.0f
+        speedMultiplier: Float = 1.0f,
+        onMarkerClicked: ((Int) -> Unit)? = null
     ) {
         stop() // Stop any existing playback
 
@@ -85,8 +87,9 @@ class MidiPlaybackEngine {
         currentLayoutType = layoutType
         currentPositions = markerScreenPositions
         currentSpeed = speedMultiplier
+        currentOnMarkerClicked = onMarkerClicked
 
-        startPlaybackFrom(0, song, layoutType, markerScreenPositions, speedMultiplier)
+        startPlaybackFrom(0, song, layoutType, markerScreenPositions, speedMultiplier, onMarkerClicked)
     }
 
     /**
@@ -111,7 +114,7 @@ class MidiPlaybackEngine {
         if (_state.value.isPaused) {
             startPlaybackFrom(
                 pausedAtIndex,
-                song, layout, positions, currentSpeed
+                song, layout, positions, currentSpeed, currentOnMarkerClicked
             )
         }
     }
@@ -138,7 +141,8 @@ class MidiPlaybackEngine {
         song: MidiSong,
         layoutType: LayoutType,
         markerScreenPositions: List<Pair<Float, Float>>,
-        speedMultiplier: Float
+        speedMultiplier: Float,
+        onMarkerClicked: ((Int) -> Unit)?
     ) {
         // Filter to note-on events only (we tap on note-on, ignore note-off)
         val noteOnEvents = song.notes.filter { it.isNoteOn }
@@ -191,6 +195,7 @@ class MidiPlaybackEngine {
                     val (x, y) = markerScreenPositions[markerIndex]
                     // Dispatch the click
                     AutoClickerAccessibilityService.instance?.performSingleClick(x, y)
+                    onMarkerClicked?.invoke(markerIndex)
                 }
 
                 // Update state

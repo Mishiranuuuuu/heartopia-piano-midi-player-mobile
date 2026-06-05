@@ -82,14 +82,14 @@ enum class LayoutType(val displayName: String, val description: String) {
                 val x1 = si.toFloat() / 7f
                 val x2 = (si + 1).toFloat() / 7f
                 val x = (x1 + x2) / 2f
-                val y = 0f - 0.08f // slightly above the row
+                val y = 0.08f - 0.08f // slightly above the row
                 markers.add(MarkerPosition(x, y, "#", isSharp = true))
             }
 
             // Row 1: 7 white keys — sharps in standard positions
             for (si in sharpOffsets) {
-                val x1 = si.toFloat() / 6f
-                val x2 = (si + 1).toFloat() / 6f
+                val x1 = (1f / 14f) + (si.toFloat() / 7f)
+                val x2 = (1f / 14f) + ((si + 1).toFloat() / 7f)
                 val x = (x1 + x2) / 2f
                 val y = 0.5f - 0.08f
                 markers.add(MarkerPosition(x, y, "#", isSharp = true))
@@ -97,8 +97,8 @@ enum class LayoutType(val displayName: String, val description: String) {
 
             // Row 2: 7 white keys — sharps in standard positions
             for (si in sharpOffsets) {
-                val x1 = si.toFloat() / 6f
-                val x2 = (si + 1).toFloat() / 6f
+                val x1 = (1f / 14f) + (si.toFloat() / 7f)
+                val x2 = (1f / 14f) + ((si + 1).toFloat() / 7f)
                 val x = (x1 + x2) / 2f
                 val y = 1.0f - 0.08f
                 markers.add(MarkerPosition(x, y, "#", isSharp = true))
@@ -129,7 +129,7 @@ enum class LayoutType(val displayName: String, val description: String) {
             )
             for (col in 0 until 8) {
                 val x = col.toFloat() / 7f
-                markers.add(MarkerPosition(x, 0f, row0Labels[col]))
+                markers.add(MarkerPosition(x, 0.08f, row0Labels[col]))
             }
 
             // Row 1: 7 white keys (middle octave)
@@ -138,7 +138,7 @@ enum class LayoutType(val displayName: String, val description: String) {
                 "5\nSOL", "6\nLA", "7\nSI"
             )
             for (col in 0 until 7) {
-                val x = col.toFloat() / 6f
+                val x = (1f / 14f) + (col.toFloat() / 7f)
                 markers.add(MarkerPosition(x, 0.5f, row1Labels[col]))
             }
 
@@ -148,7 +148,7 @@ enum class LayoutType(val displayName: String, val description: String) {
                 "5\nSOL", "6\nLA", "7\nSI"
             )
             for (col in 0 until 7) {
-                val x = col.toFloat() / 6f
+                val x = (1f / 14f) + (col.toFloat() / 7f)
                 markers.add(MarkerPosition(x, 1f, row2Labels[col]))
             }
 
