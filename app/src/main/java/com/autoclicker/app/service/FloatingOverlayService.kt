@@ -224,6 +224,73 @@ class FloatingOverlayService : Service() {
             FrameLayout.LayoutParams.MATCH_PARENT
         ))
 
+        // Small Close Badge
+        val closeBadgeSize = dpToPx(20)
+        val closeBadge = FrameLayout(this).apply {
+            val bg = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#FF5252"))
+            }
+            background = bg
+            elevation = dpToPx(9).toFloat()
+
+            val xIcon = TextView(this@FloatingOverlayService).apply {
+                text = "✕"
+                setTextColor(Color.WHITE)
+                textSize = 10f
+                gravity = Gravity.CENTER
+            }
+            addView(xIcon, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            ))
+
+            setOnClickListener {
+                stopSelf()
+            }
+        }
+        val closeParams = FrameLayout.LayoutParams(closeBadgeSize, closeBadgeSize).apply {
+            gravity = Gravity.TOP or Gravity.END
+            topMargin = dpToPx(2)
+            marginEnd = dpToPx(2)
+        }
+        bubble.addView(closeBadge, closeParams)
+
+        // Small Settings Badge
+        val settingsBadge = FrameLayout(this).apply {
+            val bg = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#FF9800"))
+            }
+            background = bg
+            elevation = dpToPx(9).toFloat()
+
+            val gearIcon = TextView(this@FloatingOverlayService).apply {
+                text = "⚙"
+                setTextColor(Color.WHITE)
+                textSize = 12f
+                gravity = Gravity.CENTER
+            }
+            addView(gearIcon, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            ))
+
+            setOnClickListener {
+                if (isPanelVisible) {
+                    removePanelView()
+                } else {
+                    createPanelView()
+                }
+            }
+        }
+        val settingsParams = FrameLayout.LayoutParams(closeBadgeSize, closeBadgeSize).apply {
+            gravity = Gravity.BOTTOM or Gravity.END
+            bottomMargin = dpToPx(2)
+            marginEnd = dpToPx(2)
+        }
+        bubble.addView(settingsBadge, settingsParams)
+
         // Window params
         val params = WindowManager.LayoutParams(
             bubbleSize, bubbleSize,
@@ -826,6 +893,76 @@ class FloatingOverlayService : Service() {
             setPadding(0, 0, 0, dpToPx(12))
         }
         panel.addView(markersText)
+
+        // Change Layout Button
+        val changeLayoutBtn = TextView(this).apply {
+            text = "Change Layout"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            val btnBg = GradientDrawable().apply {
+                cornerRadius = dpToPx(8).toFloat()
+                setColor(Color.parseColor("#3300E5FF"))
+            }
+            background = btnBg
+            setPadding(dpToPx(12), dpToPx(8), dpToPx(12), dpToPx(8))
+            gravity = Gravity.CENTER
+            setOnClickListener {
+                val types = LayoutType.entries
+                val current = configRepository.config.value.layoutType
+                val next = types[(types.indexOf(current) + 1) % types.size]
+                configRepository.updateLayoutType(next)
+                layoutText.text = "Layout: ${next.displayName}"
+                
+                // Update grid
+                currentMarkers = next.generateMarkers()
+                calculateBaseGridSize(currentMarkers)
+                val newW = (baseGridWidth * currentScaleX).toInt()
+                val newH = (baseGridHeight * currentScaleY).toInt()
+                
+                gridView?.let {
+                    val container = it as FrameLayout
+                    container.removeAllViews()
+                    markerViews.clear()
+                    for (marker in currentMarkers) {
+                        val markerView = createMarkerView(marker)
+                        markerViews.add(markerView)
+                        container.addView(markerView)
+                    }
+                    applyGridSize(newW, newH)
+                }
+                markersText.text = "Markers: ${currentMarkers.size}"
+            }
+        }
+        panel.addView(changeLayoutBtn)
+
+        val spacer1 = View(this).apply { layoutParams = LinearLayout.LayoutParams(1, dpToPx(8)) }
+        panel.addView(spacer1)
+
+        // Import MIDI Button
+        val importMidiBtn = TextView(this).apply {
+            text = "Import MIDI File"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            val btnBg = GradientDrawable().apply {
+                cornerRadius = dpToPx(8).toFloat()
+                setColor(Color.parseColor("#3300E5FF"))
+            }
+            background = btnBg
+            setPadding(dpToPx(12), dpToPx(8), dpToPx(12), dpToPx(8))
+            gravity = Gravity.CENTER
+            setOnClickListener {
+                val intent = Intent(this@FloatingOverlayService, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra("open_midi_picker", true)
+                }
+                startActivity(intent)
+                removePanelView()
+            }
+        }
+        panel.addView(importMidiBtn)
+
+        val spacer2 = View(this).apply { layoutParams = LinearLayout.LayoutParams(1, dpToPx(8)) }
+        panel.addView(spacer2)
 
         // Close button
         val closeBtn = TextView(this).apply {

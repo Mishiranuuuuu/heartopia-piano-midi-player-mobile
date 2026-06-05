@@ -614,6 +614,14 @@ fun MidiFileCard(
         noteInfo = null // Reset; will be populated on next parse
     }
 
+    val openPicker = (context as? android.app.Activity)?.intent?.getBooleanExtra("open_midi_picker", false) == true
+    LaunchedEffect(openPicker) {
+        if (openPicker) {
+            filePickerLauncher.launch(arrayOf("audio/midi", "audio/x-midi", "application/x-midi", "*/*"))
+            (context as? android.app.Activity)?.intent?.removeExtra("open_midi_picker")
+        }
+    }
+
     Card(
         colors = CardDefaults.cardColors(containerColor = DarkCard),
         shape = RoundedCornerShape(16.dp),
