@@ -19,4 +19,5 @@ If you wanna clone this repo, make sure you have [Android Studio](https://develo
     ```bash
     gradlew assambleRelease
     To build a release build.
+    ```
     **But keep in mind that if you wanna build a release build, it required an extra step in order to be able to fully build and use release build.**
