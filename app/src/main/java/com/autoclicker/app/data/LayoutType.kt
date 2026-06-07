@@ -111,6 +111,11 @@ enum class LayoutType(val displayName: String, val description: String) {
     abstract fun generateMarkers(): List<MarkerPosition>
 
     companion object {
+        /**
+         * Safely convert a persisted ordinal (from SharedPreferences) back to a [LayoutType].
+         * Falls back to [LAYOUT_5COL] if the ordinal is out of range, which guards against
+         * data corruption or layout variants being removed in future versions.
+         */
         fun fromOrdinal(ordinal: Int): LayoutType {
             return entries.getOrElse(ordinal) { LAYOUT_5COL }
         }

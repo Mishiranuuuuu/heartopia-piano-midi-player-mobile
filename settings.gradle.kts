@@ -1,3 +1,5 @@
+// ─── Plugin Management ──────────────────────────────────────────────────
+// Defines repositories where Gradle looks for build plugins (AGP, Kotlin, etc.).
 pluginManagement {
     repositories {
         google {
@@ -12,6 +14,8 @@ pluginManagement {
     }
 }
 
+// ─── Dependency Resolution ──────────────────────────────────────────────
+// Centralises all dependency repositories here; subproject-level repo declarations are forbidden.
 @Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -21,5 +25,6 @@ dependencyResolutionManagement {
     }
 }
 
+// ─── Project Structure ──────────────────────────────────────────────────
 rootProject.name = "Piano Player"
-include(":app")
+include(":app")  // The single application module

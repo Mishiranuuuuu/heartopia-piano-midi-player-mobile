@@ -1,21 +1,26 @@
+// Gradle plugins applied to this module.
+// Version catalogs (libs.versions.toml) resolve the actual plugin versions.
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.android.application)  // Android application plugin
+    alias(libs.plugins.kotlin.android)       // Kotlin support for Android
+    alias(libs.plugins.kotlin.compose)       // Jetpack Compose compiler plugin
 }
 
 android {
     namespace = "com.autoclicker.app"
     compileSdk = 35
 
+    // ─── App identity & SDK targets ──────────────────────────────────
     defaultConfig {
         applicationId = "com.autoclicker.app"
-        minSdk = 24
+        minSdk = 24       // API 24 (Android 7.0) — required for dispatchGesture()
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
     }
 
+    // ─── Release signing config ──────────────────────────────────────
+    // Reads keystore credentials from local.properties (not committed to VCS).
     signingConfigs {
         create("release") {
             val localProperties = java.util.Properties()
@@ -23,7 +28,7 @@ android {
             if (localPropertiesFile.exists()) {
                 localProperties.load(java.io.FileInputStream(localPropertiesFile))
             }
-            
+
             storeFile = file("../release-key.jks")
             storePassword = localProperties.getProperty("keystore.password") ?: ""
             keyAlias = localProperties.getProperty("keystore.alias") ?: "my-alias"
@@ -31,11 +36,12 @@ android {
         }
     }
 
+    // ─── Build types ─────────────────────────────────────────────────
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = true       // Enable R8 code shrinking
+            isShrinkResources = true     // Remove unused resources
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -43,6 +49,7 @@ android {
         }
     }
 
+    // ─── Java / Kotlin compiler options ──────────────────────────────
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -52,6 +59,7 @@ android {
         jvmTarget = "17"
     }
 
+    // ─── Jetpack Compose ─────────────────────────────────────────────
     buildFeatures {
         compose = true
     }

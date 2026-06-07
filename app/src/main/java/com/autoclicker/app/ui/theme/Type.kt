@@ -6,6 +6,24 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
+/**
+ * Material 3 [Typography] scale for the app.
+ *
+ * Uses the system SansSerif font family throughout. Only the styles that
+ * the app actually references are customised here; unlisted styles fall
+ * back to Material 3 defaults.
+ *
+ * Usage guide:
+ * - `displayLarge`   — not currently used; reserved for future splash/hero text.
+ * - `headlineLarge`  — primary section headings.
+ * - `headlineMedium` — app title in the header bar.
+ * - `titleLarge`     — dialog/panel titles.
+ * - `titleMedium`    — card titles (e.g. "MIDI File", "Grid Spacing").
+ * - `bodyLarge`      — layout preset name text.
+ * - `bodyMedium`     — card descriptions and slider labels.
+ * - `labelLarge`     — prominent button labels.
+ * - `labelMedium`    — section headers ("PERMISSIONS", "CONFIGURATION").
+ */
 val Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,

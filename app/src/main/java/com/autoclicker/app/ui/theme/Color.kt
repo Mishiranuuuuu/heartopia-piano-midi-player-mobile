@@ -2,6 +2,19 @@ package com.autoclicker.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+/**
+ * Design-system colour tokens for the app.
+ *
+ * These colours are referenced directly by composables (for custom styling)
+ * and mapped to Material 3 semantic roles in [Theme.kt].
+ *
+ * Naming convention:
+ * - `Cyan*` / `Teal*` — primary brand colours (accent buttons, icons, borders).
+ * - `Red*` / `Green*` — semantic colours (errors, success states).
+ * - `Dark*`           — surface and card backgrounds.
+ * - `Text*`           — typography colours at three contrast levels.
+ */
+
 // ─── Primary Palette (Cyan / Teal) ──────────────────────────────────────
 val Cyan80 = Color(0xFFB2EBF2)
 val Cyan60 = Color(0xFF4DD0E1)

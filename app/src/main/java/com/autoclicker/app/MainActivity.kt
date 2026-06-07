@@ -113,6 +113,14 @@ import com.autoclicker.app.ui.theme.TextMuted
 import com.autoclicker.app.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
 
+/**
+ * Single-activity entry point for the app.
+ *
+ * Responsibilities:
+ * - Initialises the [ConfigRepository] singleton.
+ * - Sets Compose content with the app's dark theme.
+ * - All UI is rendered via [AutoClickerApp]; no fragments are used.
+ */
 class MainActivity : ComponentActivity() {
 
     private lateinit var configRepository: ConfigRepository
@@ -133,6 +141,18 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Root composable that assembles the full settings screen.
+ *
+ * Layout (top → bottom):
+ * 1. [HeaderSection] — app title and live status indicator.
+ * 2. Permission cards — overlay + accessibility, with "Grant" buttons.
+ * 3. Configuration section (visible only when both permissions are granted):
+ *    - [LayoutPresetCard] — choose 5-col / 7-col / 7-col+sharps layout.
+ *    - [MidiFileCard] — pick a MIDI file and adjust playback speed.
+ *    - [GridScaleCard] — tweak horizontal & vertical marker spacing.
+ *    - [StartStopButton] — launch / stop the floating overlay service.
+ */
 @Composable
 fun AutoClickerApp(
     configRepository: ConfigRepository,
@@ -322,6 +342,10 @@ fun AutoClickerApp(
 // Components
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * App header showing the logo icon, title text, and a live status dot.
+ * The icon pulses when the auto clicker is actively running.
+ */
 @Composable
 fun HeaderSection(isRunning: Boolean) {
     Column {
@@ -404,6 +428,10 @@ fun HeaderSection(isRunning: Boolean) {
     }
 }
 
+/**
+ * A card that represents a single required permission.
+ * Shows a checkmark when granted, or a "Grant" button to open the relevant Settings page.
+ */
 @Composable
 fun PermissionCard(
     title: String,
@@ -479,6 +507,10 @@ fun PermissionCard(
     }
 }
 
+/**
+ * Card listing all available [LayoutType] presets as selectable radio-style rows.
+ * Tapping a row immediately persists the new layout choice.
+ */
 @Composable
 fun LayoutPresetCard(
     selectedLayout: LayoutType,
@@ -573,6 +605,13 @@ fun LayoutPresetCard(
     }
 }
 
+/**
+ * Card for loading a MIDI file and adjusting playback speed.
+ *
+ * When no file is loaded, shows a "Select MIDI File" button that launches
+ * the system document picker. When a file is loaded, it displays the file
+ * name, note count, duration, a speed slider, and a delete button.
+ */
 @Composable
 fun MidiFileCard(
     midiFileName: String?,
@@ -788,6 +827,10 @@ fun MidiFileCard(
     }
 }
 
+/**
+ * Card with two sliders to independently adjust the horizontal and vertical
+ * spacing between markers on the floating overlay grid.
+ */
 @Composable
 fun GridScaleCard(
     scaleX: Float,
@@ -909,6 +952,10 @@ fun GridScaleCard(
 
 
 
+/**
+ * Full-width toggle button that starts or stops the floating overlay service.
+ * Animates between cyan (start) and red (stop) colours.
+ */
 @Composable
 fun StartStopButton(
     isRunning: Boolean,

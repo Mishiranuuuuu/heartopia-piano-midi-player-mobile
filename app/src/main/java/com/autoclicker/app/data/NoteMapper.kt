@@ -2,11 +2,6 @@ package com.autoclicker.app.data
 
 /**
  * Maps MIDI note numbers to marker indices for each piano layout.
- *
- * This mirrors the logic in the Python reference scripts (piano/ folder):
- * - 15-key & 22-key: sharp notes snap to the nearest white key
- * - 37-key: all chromatic notes have a direct mapping
- * - Notes outside the layout's range are transposed by octaves to fit
  */
 object NoteMapper {
 

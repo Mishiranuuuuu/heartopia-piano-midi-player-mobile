@@ -83,8 +83,14 @@ class FloatingOverlayService : Service() {
     private val markerViews = mutableListOf<View>()
     private var currentMarkers = listOf<MarkerPosition>()
 
+    /** Not a bound service — always returns null. */
     override fun onBind(intent: Intent?): IBinder? = null
 
+    /**
+     * Initialise the service: grab screen dimensions, start as a foreground
+     * service with a persistent notification, and create all overlay views
+     * (grid, resize handles, bubble) in that z-order.
+     */
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -112,6 +118,10 @@ class FloatingOverlayService : Service() {
         Log.d(TAG, "FloatingOverlayService created with layout: ${config.layoutType.displayName}")
     }
 
+    /**
+     * Handle incoming intents — currently only [ACTION_STOP] to tear down the service.
+     * Returns [START_STICKY] so the system restarts the overlay if the process is killed.
+     */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
@@ -121,6 +131,9 @@ class FloatingOverlayService : Service() {
         return START_STICKY
     }
 
+    /**
+     * Clean up all overlay views and stop any active clicking before the service dies.
+     */
     override fun onDestroy() {
         super.onDestroy()
         // Stop clicking if active
@@ -197,6 +210,14 @@ class FloatingOverlayService : Service() {
 
     // ─── Bubble View ─────────────────────────────────────────────────────
 
+    /**
+     * Create the draggable floating bubble (the circular play/pause FAB).
+     *
+     * The bubble has three interactive elements:
+     * - **Body** — drag to reposition; tap to toggle play/pause.
+     * - **Close badge** (red ✕, top-right) — tap to shut down the entire overlay.
+     * - **Settings badge** (orange ⚙, bottom-right) — tap to show/hide the control panel.
+     */
     @SuppressLint("ClickableViewAccessibility")
     private fun createBubbleView() {
         val bubbleSize = dpToPx(56)
@@ -372,6 +393,14 @@ class FloatingOverlayService : Service() {
 
     // ─── Grid View ───────────────────────────────────────────────────────
 
+    /**
+     * Build and display the marker grid overlay.
+     *
+     * Reads the current layout's markers, calculates the container size
+     * (base size × scale factors), places all marker views inside, and
+     * makes the whole grid draggable. Grid position is persisted when
+     * the user finishes dragging.
+     */
     @SuppressLint("ClickableViewAccessibility")
     private fun createGridView() {
         val config = configRepository.config.value
@@ -803,6 +832,10 @@ class FloatingOverlayService : Service() {
         updateResizeHandlePositions()
     }
 
+    /**
+     * Reposition both resize handles so they stay anchored to the grid edges
+     * after the grid is moved or resized.
+     */
     private fun updateResizeHandlePositions() {
         val gParams = gridParams ?: return
 
@@ -838,6 +871,10 @@ class FloatingOverlayService : Service() {
 
     // ─── Panel View ──────────────────────────────────────────────────────
 
+    /**
+     * Build and show the floating settings panel (layout info, change layout,
+     * import MIDI, close overlay). Positioned at screen centre.
+     */
     @SuppressLint("SetTextI18n")
     private fun createPanelView() {
         if (isPanelVisible) return
@@ -1013,6 +1050,20 @@ class FloatingOverlayService : Service() {
 
     // ─── Click Control ───────────────────────────────────────────────────
 
+    /**
+     * Toggle between playing and stopped states.
+     *
+     * On **play**:
+     * - If a MIDI file is loaded → start [MidiPlaybackEngine]-driven playback.
+     * - Otherwise → fall back to the legacy sequential click loop.
+     * - Hides resize handles and dims the grid while playing.
+     *
+     * On **stop**:
+     * - Stops MIDI playback or the legacy click loop.
+     * - Restores grid interactivity and shows resize handles.
+     *
+     * @param icon The play/pause [ImageView] inside the bubble to update.
+     */
     private fun toggleClicking(icon: ImageView) {
         val service = AutoClickerAccessibilityService.instance
         if (service == null) {
@@ -1098,6 +1149,12 @@ class FloatingOverlayService : Service() {
         }
     }
 
+    /**
+     * Briefly shrink and bounce-back a marker view to give visual feedback
+     * that a MIDI note was just played at that position.
+     *
+     * @param index Marker index within [markerViews].
+     */
     private fun highlightMarker(index: Int) {
         if (index < 0 || index >= markerViews.size) return
         val markerFrame = markerViews[index]
@@ -1174,12 +1231,20 @@ class FloatingOverlayService : Service() {
 
     companion object {
         private const val TAG = "FloatingOverlay"
+
+        /** Notification channel ID for the foreground service notification. */
         private const val CHANNEL_ID = "auto_clicker_channel"
+
+        /** Unique notification ID for the foreground service. */
         private const val NOTIFICATION_ID = 1001
+
+        /** Intent action used by the notification "Stop" button. */
         const val ACTION_STOP = "com.autoclicker.app.STOP"
 
-        // Marker appearance constants (FIXED size, not affected by scaling)
+        /** Fixed diameter of each marker circle, in dp. Not affected by grid scaling. */
         private const val MARKER_SIZE_DP = 40
+
+        /** Inner padding of the grid container, in dp. */
         private const val GRID_PADDING_DP = 24
 
         /**

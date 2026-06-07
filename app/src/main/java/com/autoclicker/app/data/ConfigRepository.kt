@@ -44,26 +44,17 @@ class ConfigRepository(context: Context) {
         _config.value = newConfig
     }
 
-    /**
-     * Update only the click position.
-     */
     fun updatePosition(x: Float, y: Float) {
         val current = _config.value
         updateConfig(current.copy(x = x, y = y))
     }
 
 
-    /**
-     * Update the selected layout type.
-     */
     fun updateLayoutType(layoutType: LayoutType) {
         val current = _config.value
         updateConfig(current.copy(layoutType = layoutType))
     }
 
-    /**
-     * Update the horizontal grid scale factor.
-     */
     fun updateGridScaleX(scaleX: Float) {
         val current = _config.value
         updateConfig(current.copy(gridScaleX = scaleX.coerceIn(
@@ -72,9 +63,6 @@ class ConfigRepository(context: Context) {
         )))
     }
 
-    /**
-     * Update the vertical grid scale factor.
-     */
     fun updateGridScaleY(scaleY: Float) {
         val current = _config.value
         updateConfig(current.copy(gridScaleY = scaleY.coerceIn(
@@ -83,25 +71,16 @@ class ConfigRepository(context: Context) {
         )))
     }
 
-    /**
-     * Update the grid offset position.
-     */
     fun updateGridOffset(offsetX: Float, offsetY: Float) {
         val current = _config.value
         updateConfig(current.copy(gridOffsetX = offsetX, gridOffsetY = offsetY))
     }
 
-    /**
-     * Update the loaded MIDI file.
-     */
     fun updateMidiFile(uri: String?, fileName: String?) {
         val current = _config.value
         updateConfig(current.copy(midiFileUri = uri, midiFileName = fileName))
     }
 
-    /**
-     * Update the MIDI playback speed multiplier.
-     */
     fun updateMidiSpeed(speed: Float) {
         val current = _config.value
         updateConfig(current.copy(midiSpeedMultiplier = speed.coerceIn(
@@ -110,6 +89,10 @@ class ConfigRepository(context: Context) {
         )))
     }
 
+    /**
+     * Load the persisted configuration from SharedPreferences.
+     * Called once during construction to hydrate the initial [_config] state.
+     */
     private fun loadConfig(): ClickConfig {
         return ClickConfig(
             x = prefs.getFloat(KEY_X, 540f),
@@ -126,6 +109,7 @@ class ConfigRepository(context: Context) {
     }
 
     companion object {
+        // ─── SharedPreferences file name and key constants ────────────
         private const val PREFS_NAME = "auto_clicker_config"
         private const val KEY_X = "click_x"
         private const val KEY_Y = "click_y"
@@ -138,9 +122,17 @@ class ConfigRepository(context: Context) {
         private const val KEY_MIDI_NAME = "midi_file_name"
         private const val KEY_MIDI_SPEED = "midi_speed"
 
+        /**
+         * Thread-safe singleton instance.
+         * Uses double-checked locking to ensure only one repository is created.
+         */
         @Volatile
         private var INSTANCE: ConfigRepository? = null
 
+        /**
+         * Get (or lazily create) the singleton [ConfigRepository].
+         * Always uses [Context.getApplicationContext] to avoid leaking Activities.
+         */
         fun getInstance(context: Context): ConfigRepository {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: ConfigRepository(context.applicationContext).also { INSTANCE = it }
