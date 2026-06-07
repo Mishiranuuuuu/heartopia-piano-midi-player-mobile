@@ -2,6 +2,8 @@
 
 Just an app for macro on mobile since one guy asked for it.
 
+This is for basically a macro for playing in-game instruments.
+
 Also I still leave UI stuff for AI to make.
 
 If you wanna clone this repo, make sure you have [Android Studio](https://developer.android.com/studio) installed on your system. And follow these steps.
