@@ -21,6 +21,7 @@ A note on the UI: The interface was built with AI assistance.
 - A device or emulator for testing
 - Basic knowledge of Android development if you want to edit the source
 - Maybe a session installation app if your device refuse to install
+
 We recommend using [Split APKs Installer (SAI)](https://play.google.com/store/apps/details?id=com.mtv.sai) but other works fine
 
 ## Build Instructions
