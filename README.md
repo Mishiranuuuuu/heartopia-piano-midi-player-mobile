@@ -1,27 +1,49 @@
 # Midi Player Mobile
 
-Just an app for macro on mobile since one guy asked for it.
+Midi Player Mobile is an Android app for playing MIDI files and using them as a macro for in-game instruments.
 
-This is for basically a macro for playing in-game instruments.
+Originally, this project was created for Heartopia, but it can also be adapted for other games or instruments that use similar input timing.
 
-Also I still leave UI stuff for AI to make.
+## Features
 
-If you wanna clone this repo, make sure you have [Android Studio](https://developer.android.com/studio) installed on your system. And follow these steps.
+- Play MIDI files on mobile
+- Use MIDI playback as a macro for in-game instruments
+- Simple project structure for editing and customization
+- Easy to modify for other games or layouts
+---
+# For development purpose
+---
+## Requirements
 
-1.  Clone this repo using
+- [Android Studio installed](https://developer.android.com/studio)
+- A device or emulator for testing
+- Basic knowledge of Android development if you want to edit the source
+- Maybe a session installation app if your device refuse to install
+> We recommended using [Split APKs Installer (SAI)](https://play.google.com/store/apps/details?id=com.mtv.sai) but other works fine
+
+## Build Instructions
+
+1.  Clone the repository:
     ```bash
     git clone https://github.com/Mishiranuuuuu/midi-player-mobile
+    cd midi-player-mobile
     ```
 
-2.  Then you can use
+2.  Build the app:
+    You can use
     ```bash
-    gradlew assambleDebug
+    ./gradlew assembleDebug
     ```
-    To build a debug build to use, or use
+    For a debug build, or using
     ```bash
-    gradlew assambleRelease
+    ./gradlew assambleRelease
     ```
-    To build a release build.
-    **But keep in mind that if you wanna build a release build, it required an extra step in order to be able to fully build and use release build.**
+    For a release build.
+    > Release builds require a signing keystore. See Android's [signing guide](https://developer.android.com/studio/publish/app-signing) to set one up before running this.
 
-With this, You can practically clone this project and edit the code or layout of this app and build the app to match the other games yourself.
+You can edit the layout of the marker to match other games so it work with more games too
+
+---
+# License
+---
+MIT License
