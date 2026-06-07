@@ -21,3 +21,5 @@ If you wanna clone this repo, make sure you have [Android Studio](https://develo
     ```
     To build a release build.
     **But keep in mind that if you wanna build a release build, it required an extra step in order to be able to fully build and use release build.**
+
+With this, You can practically clone this project and edit the code or layout of this app and build the app to match the other games yourself.
