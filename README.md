@@ -8,7 +8,7 @@ If you wanna clone this repo, make sure you have [Android Studio](https://develo
 
 1.  Clone this repo using
     ```bash
-    git clone https://github.com/Mishiranuuuuu/heartopia-piano-midi-player-mobile
+    git clone https://github.com/Mishiranuuuuu/midi-player-mobile
     ```
 
 2.  Then you can use
