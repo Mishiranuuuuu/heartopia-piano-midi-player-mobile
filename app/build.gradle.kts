@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 // Gradle plugins applied to this module.
 // Version catalogs (libs.versions.toml) resolve the actual plugin versions.
 plugins {
@@ -15,18 +18,18 @@ android {
         applicationId = "com.autoclicker.app"
         minSdk = 24       // API 24 (Android 7.0) — required for dispatchGesture()
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
     }
 
     // ─── Release signing config ──────────────────────────────────────
     // Reads keystore credentials from local.properties (not committed to VCS).
     signingConfigs {
         create("release") {
-            val localProperties = java.util.Properties()
+            val localProperties = Properties()
             val localPropertiesFile = rootProject.file("local.properties")
             if (localPropertiesFile.exists()) {
-                localProperties.load(java.io.FileInputStream(localPropertiesFile))
+                localProperties.load(FileInputStream(localPropertiesFile))
             }
 
             storeFile = file("../release-key.jks")

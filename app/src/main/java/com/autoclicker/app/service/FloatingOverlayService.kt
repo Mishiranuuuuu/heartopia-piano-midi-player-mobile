@@ -69,6 +69,7 @@ class FloatingOverlayService : Service() {
     private var isPanelVisible = false
     private var screenWidth = 0
     private var screenHeight = 0
+    private var shouldKillProcess = false
 
     // Grid dimensions (base, before scaling)
     private var baseGridWidth = 0
@@ -125,26 +126,32 @@ class FloatingOverlayService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
+                shouldKillProcess = true
                 stopSelf()
             }
         }
         return START_STICKY
     }
 
-    /**
-     * Clean up all overlay views and stop any active clicking before the service dies.
-     */
     override fun onDestroy() {
         super.onDestroy()
-        // Stop clicking if active
-        if (isPlaying) {
-            AutoClickerAccessibilityService.instance?.stopClicking()
+        // Stop clicking and playback if active
+        val engine = MidiPlaybackEngine.getInstance()
+        if (engine.isActive) {
+            engine.stop()
         }
+        AutoClickerAccessibilityService.instance?.stopClicking()
+
         removeBubbleView()
         removeGridView()
         removeResizeHandles()
         removePanelView()
         Log.d(TAG, "FloatingOverlayService destroyed")
+
+        if (shouldKillProcess) {
+            Log.d(TAG, "Killing process to exit completely")
+            android.os.Process.killProcess(android.os.Process.myPid())
+        }
     }
 
     // ─── Notification ────────────────────────────────────────────────────
@@ -267,6 +274,7 @@ class FloatingOverlayService : Service() {
             ))
 
             setOnClickListener {
+                shouldKillProcess = true
                 stopSelf()
             }
         }
@@ -1014,6 +1022,7 @@ class FloatingOverlayService : Service() {
             setPadding(dpToPx(12), dpToPx(8), dpToPx(12), dpToPx(8))
             gravity = Gravity.CENTER
             setOnClickListener {
+                shouldKillProcess = true
                 stopSelf()
             }
         }

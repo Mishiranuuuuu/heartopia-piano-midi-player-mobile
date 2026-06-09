@@ -8,5 +8,10 @@
 # class name from AndroidManifest.xml. Obfuscating it would cause a crash.
 -keep class com.autoclicker.app.service.AutoClickerAccessibilityService { *; }
 
+# Keep FloatingOverlayService and data classes to prevent R8 over-optimization
+-keep class com.autoclicker.app.service.FloatingOverlayService { *; }
+-keep class com.autoclicker.app.data.ClickConfig { *; }
+-keep class com.autoclicker.app.data.LayoutType { *; }
+
 # Suppress harmless warnings from Jetpack Compose internals.
 -dontwarn androidx.compose.**
